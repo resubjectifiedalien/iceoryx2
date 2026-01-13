@@ -31,6 +31,7 @@ use iceoryx2_tunnel_backend::types::publish_subscribe::LoanFn;
 use crate::discovery;
 use crate::ports::event::EventPorts;
 use crate::ports::publish_subscribe::PublishSubscribePorts;
+use crate::ports::request_response::RequestResponsePorts;
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum CreationError {
@@ -57,6 +58,8 @@ pub enum DiscoveryError {
     PublishSubscribeRelayCreation,
     EventPortsCreation,
     EventRelayCreation,
+    RequestResponsePortsCreation,
+    RequestResponseRelayCreation,
     DiscoveryAnnouncement,
 }
 
@@ -74,6 +77,7 @@ pub enum PropagateError {
     PayloadIngestion,
     EventPropagation,
     EventIngestion,
+    RequestResponse,
 }
 
 impl core::fmt::Display for PropagateError {
@@ -88,6 +92,7 @@ impl core::error::Error for PropagateError {}
 pub(crate) struct Ports<S: Service> {
     pub(crate) publish_subscribe: BTreeMap<ServiceId, PublishSubscribePorts<S>>,
     pub(crate) event: BTreeMap<ServiceId, EventPorts<S>>,
+    pub(crate) request_response: BTreeMap<ServiceId, RequestResponsePorts<S>>,
 }
 
 impl<S: Service> Ports<S> {
@@ -95,6 +100,7 @@ impl<S: Service> Ports<S> {
         Self {
             publish_subscribe: BTreeMap::new(),
             event: BTreeMap::new(),
+            request_response: BTreeMap::new(),
         }
     }
 }
@@ -103,6 +109,7 @@ impl<S: Service> Ports<S> {
 pub struct Relays<S: Service, B: Backend<S>> {
     publish_subscribe: BTreeMap<ServiceId, B::PublishSubscribeRelay>,
     event: BTreeMap<ServiceId, B::EventRelay>,
+    request_response: BTreeMap<ServiceId, B::RequestResponseRelay>,
 }
 
 impl<S: Service, B: Backend<S>> Relays<S, B> {
@@ -110,6 +117,7 @@ impl<S: Service, B: Backend<S>> Relays<S, B> {
         Self {
             publish_subscribe: BTreeMap::new(),
             event: BTreeMap::new(),
+            request_response: BTreeMap::new(),
         }
     }
 }
@@ -268,6 +276,23 @@ impl<S: Service, B: for<'a> Backend<S> + Debug> Tunnel<S, B> {
             };
         }
 
+        for (service_id, port) in &self.ports.request_response {
+            match self.relays.request_response.get(service_id) {
+                Some(relay) => {
+                    fail!(
+                         from "Tunnel::propagate",
+                         when port.maintain(relay),
+                         with PropagateError::RequestResponse,
+                         "Failed to maintain request-response port"
+                    );
+                }
+                None => {
+                    warn!(from "Tunnel::propagate", "No relay available for {:?}", service_id);
+                    return Ok(());
+                }
+            };
+        }
+
         Ok(())
     }
 
@@ -276,6 +301,7 @@ impl<S: Service, B: for<'a> Backend<S> + Debug> Tunnel<S, B> {
             .publish_subscribe
             .keys()
             .chain(self.ports.event.keys())
+            .chain(self.ports.request_response.keys())
             .cloned()
             .collect()
     }
@@ -312,6 +338,9 @@ fn on_discovery<S: Service, B: Backend<S> + Debug>(
             setup_publish_subscribe(static_config, node, backend, ports, relays)
         }
         MessagingPattern::Event(_) => setup_event(static_config, node, backend, ports, relays),
+        MessagingPattern::RequestResponse(_) => {
+            setup_request_response(static_config, node, backend, ports, relays)
+        }
         _ => {
             // Not supported. Nothing to do.
             info!(
@@ -358,6 +387,50 @@ fn setup_publish_subscribe<S: Service, B: Backend<S> + Debug>(
         "Failed to create publish-subscribe relay"
     );
     relays.publish_subscribe.insert(*service_id, relay);
+
+    fail!(
+        from origin,
+        when backend.discovery().announce(static_config),
+        with DiscoveryError::DiscoveryAnnouncement,
+        "Failed to announce service over backend"
+    );
+
+    Ok(())
+}
+
+fn setup_request_response<S: Service, B: Backend<S> + Debug>(
+    static_config: &StaticConfig,
+    node: &Node<S>,
+    backend: &B,
+    ports: &mut Ports<S>,
+    relays: &mut Relays<S, B>,
+) -> Result<(), DiscoveryError> {
+    let origin = format!(
+        "Tunnel<{}, {}>::setup_request_response()",
+        core::any::type_name::<S>(),
+        core::any::type_name::<B>()
+    );
+
+    let service_id = static_config.service_id();
+
+    let port = fail!(
+        from origin,
+        when RequestResponsePorts::new(static_config, node),
+        with DiscoveryError::RequestResponsePortsCreation,
+        "Failed to create request-response ports"
+    );
+    ports.request_response.insert(*service_id, port);
+
+    let relay = fail!(
+        from origin,
+        when backend
+            .relay_builder()
+            .request_response(static_config)
+            .create(),
+        with DiscoveryError::RequestResponseRelayCreation,
+        "Failed to create request-response relay"
+    );
+    relays.request_response.insert(*service_id, relay);
 
     fail!(
         from origin,

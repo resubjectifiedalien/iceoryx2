@@ -30,12 +30,12 @@ setup_docker_image() {
     # ubuntu/debian and derivatives
     if command -v apt &>/dev/null; then
         apt update
-        apt -y install sudo git fish curl expect vim lsb-release software-properties-common gcc libacl1-dev libclang-dev zlib1g-dev clang libpython3-all-dev
+        apt -y install sudo git fish curl expect vim lsb-release software-properties-common gcc libacl1-dev libclang-dev zlib1g-dev clang libpython3-all-dev wget
     elif command -v pacman &>/dev/null; then
-        pacman -Syu --noconfirm fish curl expect git vim clang python
+        pacman -Syu --noconfirm fish curl expect git vim clang python wget
     else
         echo Please install the following packages to have a working iceoryx2 environment:
-        echo fish curl clang python
+        echo fish curl clang python wget
     fi
 
     useradd testuser1

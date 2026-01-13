@@ -13,5 +13,6 @@
 pub mod event;
 mod factory;
 pub mod publish_subscribe;
+pub mod request_response;
 
 pub use factory::*;

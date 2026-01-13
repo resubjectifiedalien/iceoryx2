@@ -14,7 +14,7 @@ use iceoryx2::service::{static_config::StaticConfig, Service};
 use iceoryx2_tunnel_backend::traits::RelayFactory;
 use zenoh::Session;
 
-use crate::relays::{event, publish_subscribe};
+use crate::relays::{event, publish_subscribe, request_response};
 
 /// Factory for creating relay builders.
 ///
@@ -38,6 +38,7 @@ impl<'session, S: Service> Factory<'session, S> {
 impl<'session, S: Service> RelayFactory<S> for Factory<'session, S> {
     type PublishSubscribeRelay = publish_subscribe::Relay<S>;
     type EventRelay = event::Relay<S>;
+    type RequestResponseRelay = request_response::Relay<S>;
 
     type PublishSubscribeBuilder<'config>
         = publish_subscribe::Builder<'config, S>
@@ -46,6 +47,11 @@ impl<'session, S: Service> RelayFactory<S> for Factory<'session, S> {
 
     type EventBuilder<'config>
         = event::Builder<'config, S>
+    where
+        Self: 'config;
+
+    type RequestResponseBuilder<'config>
+        = request_response::Builder<'config, S>
     where
         Self: 'config;
 
@@ -64,5 +70,15 @@ impl<'session, S: Service> RelayFactory<S> for Factory<'session, S> {
         Self: 'config,
     {
         event::Builder::new(self.session, static_config)
+    }
+
+    fn request_response<'config>(
+        &self,
+        static_config: &'config StaticConfig,
+    ) -> Self::RequestResponseBuilder<'config>
+    where
+        Self: 'config,
+    {
+        request_response::Builder::new(self.session, static_config)
     }
 }

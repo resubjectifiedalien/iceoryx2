@@ -17,7 +17,7 @@ use zenoh::{Config, Session, Wait};
 
 use crate::{
     discovery::Discovery,
-    relays::{event, publish_subscribe, Factory},
+    relays::{event, publish_subscribe, request_response, Factory},
 };
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
@@ -48,6 +48,7 @@ impl<S: Service> Backend<S> for ZenohBackend<S> {
 
     type PublishSubscribeRelay = publish_subscribe::Relay<S>;
     type EventRelay = event::Relay<S>;
+    type RequestResponseRelay = request_response::Relay<S>;
 
     type RelayFactory<'b>
         = Factory<'b, S>

@@ -51,6 +51,11 @@ impl RequestHeader {
         self.number_of_elements
     }
 
+    /// Returns the request id
+    pub fn request_id(&self) -> u64 {
+        self.request_id
+    }
+
     /// Returns the [`NodeId`] of the source node that published the
     /// [`RequestMut`](crate::request_mut::RequestMut).
     pub fn node_id(&self) -> NodeId {
@@ -94,5 +99,10 @@ impl ResponseHeader {
     /// means that it contains 3 elements (3 * 40 == 120).
     pub fn number_of_elements(&self) -> u64 {
         self.number_of_elements
+    }
+
+    /// Returns the request id
+    pub fn request_id(&self) -> u64 {
+        self.request_id
     }
 }

@@ -15,7 +15,7 @@ use core::fmt::Debug;
 
 use iceoryx2::service::Service;
 
-use crate::traits::{Discovery, EventRelay, PublishSubscribeRelay, RelayFactory};
+use crate::traits::{Discovery, EventRelay, PublishSubscribeRelay, RelayFactory, RequestResponseRelay};
 
 /// Core interface for tunnel backends that extend iceoryx2 over another
 /// communication mechanism.
@@ -99,11 +99,15 @@ pub trait Backend<S: Service>: Sized {
     /// [`EventRelay`] implementation for the event messaging pattern
     type EventRelay: EventRelay<S> + Debug;
 
+    /// [`RequestResponseRelay`] implementation for the request-response messaging pattern
+    type RequestResponseRelay: RequestResponseRelay<S> + Debug;
+
     /// Factory type for creating relay instances
     type RelayFactory<'a>: RelayFactory<
             S,
             PublishSubscribeRelay = Self::PublishSubscribeRelay,
             EventRelay = Self::EventRelay,
+            RequestResponseRelay = Self::RequestResponseRelay,
         > + Debug
     where
         Self: 'a;

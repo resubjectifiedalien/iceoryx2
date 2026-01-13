@@ -12,3 +12,4 @@
 
 pub(crate) mod event;
 pub(crate) mod publish_subscribe;
+pub(crate) mod request_response;

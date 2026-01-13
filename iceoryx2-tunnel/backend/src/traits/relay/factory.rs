@@ -17,6 +17,7 @@ use iceoryx2::service::{static_config::StaticConfig, Service};
 
 use crate::traits::EventRelay;
 use crate::traits::PublishSubscribeRelay;
+use crate::traits::RequestResponseRelay;
 
 /// Builder pattern for constructing relay instances.
 ///
@@ -137,6 +138,10 @@ pub trait RelayFactory<S: Service> {
     /// to be built by [`RelayBuilder`]s created by the [`RelayFactory`]
     type EventRelay: EventRelay<S>;
 
+    /// The [`RequestResponse`](iceoryx2::service::messaging_pattern::MessagingPattern::RequestResponse)
+    /// to be built by [`RelayBuilder`]s created by the [`RelayFactory`]
+    type RequestResponseRelay: RequestResponseRelay<S>;
+
     /// [RelayBuilder] type for creating [`PublishSubscribe`](iceoryx2::service::messaging_pattern::MessagingPattern::PublishSubscribe)
     /// relays.
     type PublishSubscribeBuilder<'a>: RelayBuilder<Relay = Self::PublishSubscribeRelay> + Debug + 'a
@@ -146,6 +151,12 @@ pub trait RelayFactory<S: Service> {
     /// [RelayBuilder] type for creating [`Event`](iceoryx2::service::messaging_pattern::MessagingPattern::Event)
     /// relays.
     type EventBuilder<'a>: RelayBuilder<Relay = Self::EventRelay> + Debug + 'a
+    where
+        Self: 'a;
+
+    /// [RelayBuilder] type for creating [`RequestResponse`](iceoryx2::service::messaging_pattern::MessagingPattern::RequestResponse)
+    /// relays.
+    type RequestResponseBuilder<'a>: RelayBuilder<Relay = Self::RequestResponseRelay> + Debug + 'a
     where
         Self: 'a;
 
@@ -180,6 +191,24 @@ pub trait RelayFactory<S: Service> {
     /// A [`RelayBuilder`] configured with the [`Service`]'s [`StaticConfig`].
     /// The [`RelayBuilder`] can be further customized before calling [`RelayBuilder::create()`].
     fn event<'a>(&self, static_config: &'a StaticConfig) -> Self::EventBuilder<'a>
+    where
+        Self: 'a;
+
+    /// Creates a [`RelayBuilder`] for [`RequestResponse`](iceoryx2::service::messaging_pattern::MessagingPattern::RequestResponse)
+    /// relays.
+    ///
+    /// # Parameters
+    ///
+    /// * `static_config` - The [`Service`]'s [`StaticConfig`] for which a builder will be created
+    ///
+    /// # Returns
+    ///
+    /// A [`RelayBuilder`] configured with the [`Service`]'s [`StaticConfig`].
+    /// The [`RelayBuilder`] can be further customized before calling [`RelayBuilder::create()`].
+    fn request_response<'a>(
+        &self,
+        static_config: &'a StaticConfig,
+    ) -> Self::RequestResponseBuilder<'a>
     where
         Self: 'a;
 }

@@ -31,3 +31,13 @@ pub fn publish_subscribe(service_id: &ServiceId) -> String {
 pub fn event(service_id: &ServiceId) -> String {
     format!("iox2/event/{}", service_id.as_str())
 }
+
+/// The zenoh key at which requests for a given request-response service id can be received.
+pub fn request(service_id: &ServiceId) -> String {
+    format!("iox2/request_response/{}/request", service_id.as_str())
+}
+
+/// The zenoh key at which responses for a given request-response service id can be received.
+pub fn response(service_id: &ServiceId) -> String {
+    format!("iox2/request_response/{}/response", service_id.as_str())
+}
